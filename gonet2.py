@@ -6,6 +6,7 @@ import subprocess
 import socket
 import os
 import time
+from time import gmtime, strftime
 from PIL import Image, ImageDraw, ImageFont, ExifTags
  
 
@@ -52,17 +53,17 @@ def convert_raw_timestamp_to_filename_timestamp(raw_timestamp):
 
      return time_parts[0] + "_" + time_parts[1]
 
-##### convert_raw_to_filename #####
+##### end of convert_raw_to_filename #####
 
 
-def  convert_raw_timestamp_to_image_timestamp(raw_timestamp):
-     #180119_214946 DD/MM/YY HH:MM:SS
-     date = raw_timestamp[0:2] + "/" + raw_timestamp[2:4] + "/" + raw_timestamp[4:6]
-     time = raw_timestamp[7:9] + ":" + raw_timestamp[9:11] + ":" + raw_timestamp[11:13]
-
-     return date + " " + time
-
-##### end of convert_raw_timestamp_to_filename_timestamp #####
+#def  convert_raw_timestamp_to_image_timestamp(raw_timestamp):
+#     #180119_214946 DD/MM/YY HH:MM:SS
+#     date = raw_timestamp[0:2] + "/" + raw_timestamp[2:4] + "/" + raw_timestamp[4:6]
+#     time = raw_timestamp[7:9] + ":" + raw_timestamp[9:11] + ":" + raw_timestamp[11:13]
+#
+#     return date + " " + time
+#
+###### end of convert_raw_timestamp_to_image_timestamp #####
 
 
 def convert_raw_gps_fix_to_image_gps_fix(raw_gps_fix):
@@ -127,8 +128,8 @@ ser.close()
 
 filename_timestamp = convert_raw_timestamp_to_filename_timestamp(raw_timestamp)
 
-image_timestamp = convert_raw_timestamp_to_image_timestamp(raw_timestamp)
-print image_timestamp
+#image_timestamp = convert_raw_timestamp_to_image_timestamp(raw_timestamp)
+#print image_timestamp
 
 image_gps_fix = convert_raw_gps_fix_to_image_gps_fix(raw_gps_fix)
 print image_gps_fix
@@ -142,6 +143,7 @@ exif_long = convert_raw_gps_fix_to_exif_long(raw_gps_fix)
 
 ##### done with gps string manipulation #####
 
+##### This where the photo loop begins #####
 
 #Create image of a white rectangle for test background
 img = Image.new('RGB', (1944, 120), color=(255,255,255))
@@ -153,7 +155,7 @@ print gps_string
 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",40)
 d = ImageDraw.Draw(img)
 d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(0,0,0))
-d.text((20,70), image_timestamp + " " + image_gps_fix, font=font, fill=(0,0,0))
+d.text((20,70), strftime("%m-%d-%y %H:%M:%S", gmtime()) + " " + image_gps_fix, font=font, fill=(0,0,0))
 img.rotate(90,expand = True).save('foreground.jpg', 'JPEG')
 
 # take a picture with pi cam!
@@ -195,5 +197,9 @@ background.paste(foreground, (0, 0)) #, foreground)
 
 #save the new composite image with pi cam photo's exif
 #background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
-background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
+
+
+image_date = (strftime("%m%d%y_%H%M%S", gmtime()))
+
+background.save(socket.gethostname()[-3:] + "_" + image_date + ".jpg", 'JPEG',  exif=exif)
 
