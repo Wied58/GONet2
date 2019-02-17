@@ -151,6 +151,9 @@ img = Image.new('RGB', (1944, 120), color=(255,255,255))
 print "gps_string "
 print gps_string
 
+
+start_time = time.time()
+print "start_time = " + str(start_time)
 # place black text on white image, rotate and save as foreground.jpg
 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",40)
 d = ImageDraw.Draw(img)
@@ -168,6 +171,8 @@ img.rotate(90,expand = True).save('foreground.jpg', 'JPEG')
 # https://sno.phy.queensu.ca/~phil/exiftool/TagNames/GPS.html
 
 
+file_name_date = (strftime("%m%d%y_%H%M%S", gmtime()))
+
 command = ['raspistill', '-v',
                          '-t', '12000',
                          '-ss', '2000000',
@@ -181,7 +186,7 @@ command = ['raspistill', '-v',
                          '-x', 'GPS.GPSLatitudeRef=' + "N",
                          '-x', 'GPS.GPSLongitude=' + exif_long, 
                          '-x', 'GPS.GPSLongitudeRef=' + "W",
-                         '-o', 'cam.jpg']
+                         '-o', socket.gethostname()[-3:] + '_' + file_name_date + '.raw']
 subprocess.Popen(command)
 
 # open the the image from pi cam 
@@ -199,7 +204,13 @@ background.paste(foreground, (0, 0)) #, foreground)
 #background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
 
 
-image_date = (strftime("%m%d%y_%H%M%S", gmtime()))
 
-background.save(socket.gethostname()[-3:] + "_" + image_date + ".jpg", 'JPEG',  exif=exif)
+background.save(socket.gethostname()[-3:] + "_" + file_name_date + ".jpg", 'JPEG',  exif=exif)
+
+end_time = time.time()
+print "end_time = " + str(end_time)
+
+delta_time = end_time - start_time
+print "delta_time = " + str(delta_time)
+
 
