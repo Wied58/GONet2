@@ -11,6 +11,7 @@ from time import gmtime, strftime
 from PIL import Image, ImageDraw, ImageFont, ExifTags
 
 image_dir = "/home/pi/images/"
+number_of_images = 3
 
 port = "/dev/serial0"
 ser = serial.Serial(port, baudrate = 9600, timeout = 0.5)
@@ -146,74 +147,81 @@ exif_long = convert_raw_gps_fix_to_exif_long(raw_gps_fix)
 ##### done with gps string manipulation #####
 
 ##### This where the photo loop begins #####
-
-#Create image of a white rectangle for test background
-img = Image.new('RGB', (1944, 120), color=(255,255,255))
+for x in range(1, number_of_images):
 
 
-start_time = time.time()
-print "start_time = " + str(start_time)
+     print ""
+     print "taking image " + str(x)
+     print ""
 
-# place black text on white image, rotate and save as foreground.jpg
+     start_time = time.time()
+     print "start_time = " + str(start_time)
+     
+     #Create image of a white rectangle for test background
+     img = Image.new('RGB', (1944, 120), color=(255,255,255))
+     
+     
+     # place black text on white image, rotate and save as foreground.jpg
+     
+     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",40)
+     d = ImageDraw.Draw(img)
+     d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(0,0,0))
+     d.text((20,70), strftime("%m-%d-%y %H:%M:%S", gmtime()) + " " + image_gps_fix, font=font, fill=(0,0,0))
+     img.rotate(90,expand = True).save(image_dir + 'foreground.jpg', 'JPEG')
+     
+     # take a picture with pi cam!
+     
+     # GPS Exif for testing 
+     #exif_lat = '42/1,03/1,25.86/1'
+     #exif_long = '087/1,48/1,46.9794/1'
+     
+     # http://www.ridgesolutions.ie/index.php/2015/03/05/geotag-exif-gps-latitude-field-format/
+     # https://sno.phy.queensu.ca/~phil/exiftool/TagNames/GPS.html
+     
+     
+     file_name_date = (strftime("%m%d%y_%H%M%S", gmtime()))
+     
+     command = ['raspistill', '-v',
+                              '-t', '12000',
+                              '-ss', '2000000',
+                              '-ISO', '800',
+                              '-drc', 'off',
+                              '-awb', 'sun',
+                              '-br', '50',
+                              '-r',
+                              '-ts',
+                              '-x', 'GPS.GPSLatitude=' + exif_lat,
+                              '-x', 'GPS.GPSLatitudeRef=' + "N",
+                              '-x', 'GPS.GPSLongitude=' + exif_long, 
+                              '-x', 'GPS.GPSLongitudeRef=' + "W",
+                              '-o', image_dir + 'cam.jpg']
+     subprocess.call(command)
+     
+     
+     # open the the image from pi cam 
+     background = Image.open(image_dir + "cam.jpg").convert("RGB")
+     
+     # save its exif -  does not include raw (bayer) data
+     exif = background.info['exif']
+     
+     # open foreground.jpg and paste it to pi cam image
+     foreground = Image.open(image_dir + "foreground.jpg")
+     background.paste(foreground, (0, 0)) #, foreground)
+     
+     #save the new composite image with pi cam photo's exif
+     
+     background.save(image_dir + socket.gethostname()[-3:] + "_" + file_name_date + ".jpg", 'JPEG',  exif=exif)
+     
+     #save the image from the camera with raw data intact
+     shutil.move(image_dir + 'cam.jpg', image_dir + socket.gethostname()[-3:] + '_' + file_name_date + '_w_raw' + '.jpg') 
+     
+     #calcuate run time
+     
+     end_time = time.time()
+     print "end_time = " + str(end_time)
+     
+     run_time = end_time - start_time
+     print "run_time = " + str(run_time)
 
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",40)
-d = ImageDraw.Draw(img)
-d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(0,0,0))
-d.text((20,70), strftime("%m-%d-%y %H:%M:%S", gmtime()) + " " + image_gps_fix, font=font, fill=(0,0,0))
-img.rotate(90,expand = True).save(image_dir + 'foreground.jpg', 'JPEG')
 
-# take a picture with pi cam!
-
-# GPS Exif for testing 
-#exif_lat = '42/1,03/1,25.86/1'
-#exif_long = '087/1,48/1,46.9794/1'
-
-# http://www.ridgesolutions.ie/index.php/2015/03/05/geotag-exif-gps-latitude-field-format/
-# https://sno.phy.queensu.ca/~phil/exiftool/TagNames/GPS.html
-
-
-file_name_date = (strftime("%m%d%y_%H%M%S", gmtime()))
-
-command = ['raspistill', '-v',
-                         '-t', '12000',
-                         '-ss', '2000000',
-                         '-ISO', '800',
-                         '-drc', 'off',
-                         '-awb', 'sun',
-                         '-br', '50',
-                         '-r',
-                         '-ts',
-                         '-x', 'GPS.GPSLatitude=' + exif_lat,
-                         '-x', 'GPS.GPSLatitudeRef=' + "N",
-                         '-x', 'GPS.GPSLongitude=' + exif_long, 
-                         '-x', 'GPS.GPSLongitudeRef=' + "W",
-                         '-o', image_dir + 'cam.jpg']
-subprocess.call(command)
-
-
-# open the the image from pi cam 
-background = Image.open(image_dir + "cam.jpg").convert("RGB")
-
-# save its exif -  does not include raw (bayer) data
-exif = background.info['exif']
-
-# open foreground.jpg and paste it to pi cam image
-foreground = Image.open(image_dir + "foreground.jpg")
-background.paste(foreground, (0, 0)) #, foreground)
-
-#save the new composite image with pi cam photo's exif
-
-background.save(image_dir + socket.gethostname()[-3:] + "_" + file_name_date + ".jpg", 'JPEG',  exif=exif)
-
-#save the image from the camera with raw data intact
-shutil.move(image_dir + 'cam.jpg', image_dir + socket.gethostname()[-3:] + '_' + file_name_date + '_w_raw' + '.jpg') 
-
-#calcuate run time
-
-end_time = time.time()
-print "end_time = " + str(end_time)
-
-run_time = end_time - start_time
-print "run_time = " + str(run_time)
-
-
+print "Fini"
