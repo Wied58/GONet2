@@ -172,6 +172,7 @@ img.rotate(90,expand = True).save('foreground.jpg', 'JPEG')
 
 
 file_name_date = (strftime("%m%d%y_%H%M%S", gmtime()))
+#file_name = socket.gethostname()[-3:] + '_' + file_name_date + '.jpg'
 
 command = ['raspistill', '-v',
                          '-t', '12000',
@@ -186,10 +187,11 @@ command = ['raspistill', '-v',
                          '-x', 'GPS.GPSLatitudeRef=' + "N",
                          '-x', 'GPS.GPSLongitude=' + exif_long, 
                          '-x', 'GPS.GPSLongitudeRef=' + "W",
-                         '-o', socket.gethostname()[-3:] + '_' + file_name_date + '.raw']
+                         '-o', 'cam.jpg']
 subprocess.Popen(command)
 
 # open the the image from pi cam 
+#background = Image.open(socket.gethostname()[-3:] + '_' + file_name_date + '.jpg').convert("RGB")
 background = Image.open("cam.jpg").convert("RGB")
 
 # save its exif
@@ -201,11 +203,11 @@ foreground = Image.open("foreground.jpg")
 background.paste(foreground, (0, 0)) #, foreground)
 
 #save the new composite image with pi cam photo's exif
-#background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
 
 
 
-background.save(socket.gethostname()[-3:] + "_" + file_name_date + ".jpg", 'JPEG',  exif=exif)
+#background.save(socket.gethostname()[-3:] + "_" + file_name_date + ".jpeg", 'JPEG',  exif=exif)
+background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
 
 end_time = time.time()
 print "end_time = " + str(end_time)
