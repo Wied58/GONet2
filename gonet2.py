@@ -5,10 +5,12 @@ import serial
 import subprocess
 import socket
 import os
+import shutil
 import time
 from time import gmtime, strftime
 from PIL import Image, ImageDraw, ImageFont, ExifTags
- 
+
+#image_dir = "\home\pi\images\"
 
 port = "/dev/serial0"
 ser = serial.Serial(port, baudrate = 9600, timeout = 0.5)
@@ -40,20 +42,20 @@ def parse_gga(sdata):
 ##### end of parse gga #####
 
 
-def parse_rmc(sdata):
-     date = sdata[9]
-     time = sdata[1][0:6]
+#def parse_rmc(sdata):
+#     date = sdata[9]
+#     time = sdata[1][0:6]
+#
+#     return date + " " + time
+#
+###### end of parse rmc #####
 
-     return date + " " + time
-
-##### end of parse rmc #####
-
-def convert_raw_timestamp_to_filename_timestamp(raw_timestamp):
-     time_parts = raw_timestamp.split(" ")
-
-     return time_parts[0] + "_" + time_parts[1]
-
-##### end of convert_raw_to_filename #####
+#def convert_raw_timestamp_to_filename_timestamp(raw_timestamp):
+#     time_parts = raw_timestamp.split(" ")
+#
+#     return time_parts[0] + "_" + time_parts[1]
+#
+###### end of convert_raw_to_filename #####
 
 
 #def  convert_raw_timestamp_to_image_timestamp(raw_timestamp):
@@ -107,14 +109,14 @@ def convert_raw_gps_fix_to_exif_long(raw_gps_fix):
 print  "Looking for GPS Data"
 
 while True:
-   time.sleep(0.25)
+   time.sleep(0.5)
    data = ser.read_until() 
 # Uncomment following line for quick GPS test
 #   print data 
    sdata = data.split(",")
 
-   if sdata[0] == "$GPRMC":
-          raw_timestamp = parse_rmc(sdata)
+#   if sdata[0] == "$GPRMC":
+#          raw_timestamp = parse_rmc(sdata)
 
    if sdata[0] == "$GPGGA":
           raw_gps_fix  = parse_gga(sdata)
@@ -126,7 +128,7 @@ ser.close()
 
 ##### manuipilate gps strings to make them useful #####
 
-filename_timestamp = convert_raw_timestamp_to_filename_timestamp(raw_timestamp)
+#filename_timestamp = convert_raw_timestamp_to_filename_timestamp(raw_timestamp)
 
 #image_timestamp = convert_raw_timestamp_to_image_timestamp(raw_timestamp)
 #print image_timestamp
@@ -134,7 +136,7 @@ filename_timestamp = convert_raw_timestamp_to_filename_timestamp(raw_timestamp)
 image_gps_fix = convert_raw_gps_fix_to_image_gps_fix(raw_gps_fix)
 print image_gps_fix
 
-gps_string = raw_timestamp + " " + raw_gps_fix
+#gps_string = raw_timestamp + " " + raw_gps_fix
 
 exif_lat = convert_raw_gps_fix_to_exif_lat(raw_gps_fix)
 exif_long = convert_raw_gps_fix_to_exif_long(raw_gps_fix)
@@ -148,13 +150,12 @@ exif_long = convert_raw_gps_fix_to_exif_long(raw_gps_fix)
 #Create image of a white rectangle for test background
 img = Image.new('RGB', (1944, 120), color=(255,255,255))
 
-print "gps_string "
-print gps_string
-
 
 start_time = time.time()
 print "start_time = " + str(start_time)
+
 # place black text on white image, rotate and save as foreground.jpg
+
 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",40)
 d = ImageDraw.Draw(img)
 d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(0,0,0))
@@ -163,7 +164,7 @@ img.rotate(90,expand = True).save('foreground.jpg', 'JPEG')
 
 # take a picture with pi cam!
 
-
+# GPS Exif for testing 
 #exif_lat = '42/1,03/1,25.86/1'
 #exif_long = '087/1,48/1,46.9794/1'
 
@@ -172,7 +173,6 @@ img.rotate(90,expand = True).save('foreground.jpg', 'JPEG')
 
 
 file_name_date = (strftime("%m%d%y_%H%M%S", gmtime()))
-#file_name = socket.gethostname()[-3:] + '_' + file_name_date + '.jpg'
 
 command = ['raspistill', '-v',
                          '-t', '12000',
@@ -188,15 +188,14 @@ command = ['raspistill', '-v',
                          '-x', 'GPS.GPSLongitude=' + exif_long, 
                          '-x', 'GPS.GPSLongitudeRef=' + "W",
                          '-o', 'cam.jpg']
-subprocess.Popen(command)
+subprocess.call(command)
+
 
 # open the the image from pi cam 
-#background = Image.open(socket.gethostname()[-3:] + '_' + file_name_date + '.jpg').convert("RGB")
 background = Image.open("cam.jpg").convert("RGB")
 
-# save its exif
+# save its exif -  does not include raw (bayer) data
 exif = background.info['exif']
-
 
 # open foreground.jpg and paste it to pi cam image
 foreground = Image.open("foreground.jpg")
@@ -204,15 +203,18 @@ background.paste(foreground, (0, 0)) #, foreground)
 
 #save the new composite image with pi cam photo's exif
 
+#background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
+background.save(socket.gethostname()[-3:] + "_" + file_name_date + ".jpg", 'JPEG',  exif=exif)
 
+#save the image from the camera with raw data intact
+shutil.move('cam.jpg', socket.gethostname()[-3:] + '_' + file_name_date + '_w_raw' + '.jpg') 
 
-#background.save(socket.gethostname()[-3:] + "_" + file_name_date + ".jpeg", 'JPEG',  exif=exif)
-background.save(socket.gethostname()[-3:] + "_" + filename_timestamp + ".jpg", 'JPEG',  exif=exif)
+#calcuate run time
 
 end_time = time.time()
 print "end_time = " + str(end_time)
 
-delta_time = end_time - start_time
-print "delta_time = " + str(delta_time)
+run_time = end_time - start_time
+print "run_time = " + str(run_time)
 
 
