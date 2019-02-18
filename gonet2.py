@@ -158,15 +158,18 @@ for x in range(1, number_of_images):
      print "start_time = " + str(start_time)
      
      #Create image of a white rectangle for test background
-     img = Image.new('RGB', (1944, 120), color=(255,255,255))
+     #img = Image.new('RGB', (1944, 120), color=(255,255,255))
+     img = Image.new('RGB', (1944, 120), color=(0,0,0))
      
      
      # place black text on white image, rotate and save as foreground.jpg
      
      font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",40)
      d = ImageDraw.Draw(img)
-     d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(0,0,0))
-     d.text((20,70), strftime("%m-%d-%y %H:%M:%S", gmtime()) + " " + image_gps_fix, font=font, fill=(0,0,0))
+     #d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(0,0,0))
+     #d.text((20,70), strftime("%m-%d-%y %H:%M:%S", gmtime()) + " " + image_gps_fix, font=font, fill=(0,0,0))
+     d.text((20,10), "Adler / Far Horizons GONet hostname: " + socket.gethostname(), font=font, fill=(255,255,255))
+     d.text((20,70), strftime("%m-%d-%y %H:%M:%S", gmtime()) + " " + image_gps_fix, font=font, fill=(255,255,255))
      img.rotate(90,expand = True).save(image_dir + 'foreground.jpg', 'JPEG')
      
      # take a picture with pi cam!
